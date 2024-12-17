@@ -5,8 +5,8 @@ repositories {
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
     maven {
         url "https://hyperledger.jfrog.io/artifactory/besu-maven/"
-        artifactUrls "https://hyperledger.jfrog.io/artifactory/besu-maven/org/hyperledger/besu/plugin-api/21.7.2/"
-        artifactUrls "https://hyperledger.jfrog.io/artifactory/besu-maven/org/hyperledger/besu/internal/besu/21.7.2/"
+        artifactUrls "https://hyperledger.jfrog.io/artifactory/besu-maven/org/hyperledger-web3j/besu/plugin-api/21.7.2/"
+        artifactUrls "https://hyperledger.jfrog.io/artifactory/besu-maven/org/hyperledger-web3j/besu/internal/besu/21.7.2/"
     }
     maven {
         url "https://hyperledger.jfrog.io/artifactory/besu-binaries/"
