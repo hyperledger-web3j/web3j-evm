@@ -15,7 +15,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### BREAKING CHANGES
 
-*
+* fix organization name [#116](https://github.com/hyperledger-web3j/web3j-evm/pull/116)
 
 # [4.12.2](https://github.com/hyperledger/web3j-evm/releases/tag/v4.12.2) (2024-09-18)
 
