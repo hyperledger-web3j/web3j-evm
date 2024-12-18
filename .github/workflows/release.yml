@@ -17,7 +17,7 @@ jobs:
       - name: Build Workflow Dispatch
         uses: convictional/trigger-workflow-and-wait@v1.3.0
         with:
-          owner: hyperledger
+          owner: hyperledger-web3j
           repo: web3j-evm
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow_file_name: build.yml

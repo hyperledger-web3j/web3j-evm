@@ -3,7 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [4.12.3]() (Upcoming)
+# [4.12.4]() (Upcoming)
+
+### Bug Fixes
+
+*
+
+### Features
+
+* bump snapshot version to 4.12.4 [#115](https://github.com/hyperledger/web3j-evm/pull/115)
+
+### BREAKING CHANGES
+
+# [4.12.3](https://github.com/hyperledger-web3j/web3j-evm/releases/tag/v4.12.3) (2024-12-17)
 
 ### Bug Fixes
 
