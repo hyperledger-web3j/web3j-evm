@@ -27,8 +27,8 @@ repositories {
 }
 
 dependencies {
-    implementation "org.web3j:core:4.12.2"
-    implementation "org.web3j:web3j-evm:4.12.2"
+    implementation "org.web3j:core:4.13.0"
+    implementation "org.web3j:web3j-evm:4.13.0"
 }
 ```
 
