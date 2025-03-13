@@ -16,19 +16,21 @@ import com.google.common.io.Resources
 import org.apache.tuweni.bytes.Bytes
 import org.hyperledger.besu.cli.config.EthNetworkConfig
 import org.hyperledger.besu.cli.config.NetworkName
-import org.hyperledger.besu.config.GenesisConfigFile
+import org.hyperledger.besu.config.GenesisConfig
 import org.hyperledger.besu.datatypes.Address
 import org.hyperledger.besu.datatypes.Hash
 import org.hyperledger.besu.datatypes.Wei
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResultFactory
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
+import org.hyperledger.besu.ethereum.chain.BadBlockManager
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
 import org.hyperledger.besu.ethereum.chain.GenesisState
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain
 import org.hyperledger.besu.ethereum.core.Block
 import org.hyperledger.besu.ethereum.core.BlockBody
 import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder
+import org.hyperledger.besu.ethereum.core.MiningConfiguration
 import org.hyperledger.besu.ethereum.core.MutableWorldState
 import org.hyperledger.besu.ethereum.core.PrivacyParameters
 import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader
@@ -47,8 +49,9 @@ import org.hyperledger.besu.ethereum.transaction.TransactionSimulator
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulatorResult
 import org.hyperledger.besu.ethereum.trie.forest.ForestWorldStateArchive
 import org.hyperledger.besu.ethereum.trie.forest.storage.ForestWorldStateKeyValueStorage
-import org.hyperledger.besu.ethereum.vm.CachingBlockHashLookup
+import org.hyperledger.besu.ethereum.vm.BlockchainBasedBlockHashLookup
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive
+import org.hyperledger.besu.ethereum.worldstate.WorldStateStorageCoordinator
 import org.hyperledger.besu.evm.internal.EvmConfiguration
 import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.hyperledger.besu.evm.worldstate.WorldUpdater
@@ -86,9 +89,9 @@ class InMemoryBesuChain(
     init {
         val genesisConfig = if (configuration.genesisFileUrl === null) {
             val networkConfig = EthNetworkConfig.getNetworkConfig(networkName)
-            GenesisConfigFile.fromConfig(networkConfig.genesisConfig)
+            networkConfig.genesisConfig
         } else {
-            GenesisConfigFile.fromConfig(
+            GenesisConfig.fromConfig(
                 @Suppress("UnstableApiUsage")
                 Resources.toString(
                     configuration.genesisFileUrl,
@@ -96,13 +99,18 @@ class InMemoryBesuChain(
                 ),
             )
         }
-        val configOptions = genesisConfig.getConfigOptions(genesisConfigOverrides)
+        val configOptions = genesisConfig.withOverrides(genesisConfigOverrides).getConfigOptions()
+        val miningConfiguration = MiningConfiguration.newDefault()
 
         protocolSchedule = MainnetProtocolSchedule.fromConfig(
             configOptions,
-            PrivacyParameters.DEFAULT,
-            true,
-            EvmConfiguration.DEFAULT,
+            Optional.of(PrivacyParameters.DEFAULT),
+            Optional.of(true),
+            Optional.of(EvmConfiguration.DEFAULT),
+            miningConfiguration,
+            BadBlockManager(),
+            false,
+            NoOpMetricsSystem(),
         )
 
         val keyValueStorage = InMemoryKeyValueStorage()
@@ -111,16 +119,18 @@ class InMemoryBesuChain(
             keyValueStorage,
             variablesStorage,
             MainnetBlockHeaderFunctions(),
+            false,
         )
         val worldStateStorage = ForestWorldStateKeyValueStorage(InMemoryKeyValueStorage())
+        val worldStateStorageCoordinator = WorldStateStorageCoordinator(worldStateStorage)
         val worldStatePreimageStorage = WorldStatePreimageKeyValueStorage(InMemoryKeyValueStorage())
 
         worldStateArchive = ForestWorldStateArchive(
-            worldStateStorage,
+            worldStateStorageCoordinator,
             worldStatePreimageStorage,
             EvmConfiguration.DEFAULT,
         )
-        worldState = worldStateArchive.mutable
+        worldState = worldStateArchive.worldState
         worldStateUpdater = worldState.updater()
 
         genesisState = GenesisState.fromConfig(genesisConfig, protocolSchedule)
@@ -147,13 +157,14 @@ class InMemoryBesuChain(
 
         worldStateUpdater.commit()
 
-        blockchainQueries = BlockchainQueries(blockChain, worldStateArchive)
+        blockchainQueries = BlockchainQueries(protocolSchedule, blockChain, worldStateArchive, miningConfiguration)
         chainId = protocolSchedule.chainId.orElse(BigInteger.ONE)
 
         simulator = TransactionSimulator(
             blockChain,
             worldStateArchive,
             protocolSchedule,
+            miningConfiguration,
             0L,
         )
     }
@@ -179,9 +190,8 @@ class InMemoryBesuChain(
         val transactions = listOf(transaction)
 
         val processableBlockHeader = createPendingBlockHeader()
-        val blockHashLookup = CachingBlockHashLookup(processableBlockHeader, blockChain)
+        val blockHashLookup = BlockchainBasedBlockHashLookup(processableBlockHeader, blockChain)
         val result = transactionProcessor.processTransaction(
-            blockChain,
             worldStateUpdater,
             processableBlockHeader,
             transaction,
