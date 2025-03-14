@@ -17,7 +17,7 @@ import org.apache.tuweni.bytes.Bytes
 import org.apache.tuweni.units.bigints.UInt256
 import org.hyperledger.besu.cli.config.EthNetworkConfig
 import org.hyperledger.besu.cli.config.NetworkName
-import org.hyperledger.besu.config.GenesisConfigFile
+import org.hyperledger.besu.config.GenesisConfig
 import org.hyperledger.besu.datatypes.Address
 import org.hyperledger.besu.datatypes.Hash
 import org.hyperledger.besu.datatypes.Wei
@@ -31,6 +31,8 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionRec
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptRootResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptStatusResult
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
+import org.hyperledger.besu.ethereum.chain.BadBlockManager
+import org.hyperledger.besu.ethereum.core.MiningConfiguration
 import org.hyperledger.besu.ethereum.core.PrivacyParameters
 import org.hyperledger.besu.ethereum.core.Transaction
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
@@ -39,6 +41,7 @@ import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.transaction.CallParameter
 import org.hyperledger.besu.evm.internal.EvmConfiguration
 import org.hyperledger.besu.evm.tracing.OperationTracer
+import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
 import org.slf4j.LoggerFactory
 import org.web3j.evm.utils.TestAccountsConstants
 import org.web3j.protocol.core.methods.response.AccessListObject
@@ -133,9 +136,9 @@ class EmbeddedEthereum(
 
         val genesisConfig = if (configuration.genesisFileUrl === null) {
             val networkConfig = EthNetworkConfig.getNetworkConfig(NetworkName.DEV)
-            GenesisConfigFile.fromConfig(networkConfig.genesisConfig)
+            networkConfig.genesisConfig
         } else {
-            GenesisConfigFile.fromConfig(
+            GenesisConfig.fromConfig(
                 @Suppress("UnstableApiUsage")
                 Resources.toString(
                     configuration.genesisFileUrl,
@@ -143,13 +146,18 @@ class EmbeddedEthereum(
                 ),
             )
         }
-        val configOptions = genesisConfig.getConfigOptions(InMemoryBesuChain.DEFAULT_GENESIS_OVERRIDES)
+
+        val configOptions = genesisConfig.withOverrides(InMemoryBesuChain.DEFAULT_GENESIS_OVERRIDES).getConfigOptions()
 
         val protocolSchedule = MainnetProtocolSchedule.fromConfig(
             configOptions,
-            PrivacyParameters.DEFAULT,
-            true,
-            EvmConfiguration.DEFAULT,
+            Optional.of(PrivacyParameters.DEFAULT),
+            Optional.of(true),
+            Optional.of(EvmConfiguration.DEFAULT),
+            MiningConfiguration.newDefault(),
+            BadBlockManager(),
+            false,
+            NoOpMetricsSystem(),
         )
 
         val result = blockchainQueries

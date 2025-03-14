@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [4.13.1]() (Upcoming)
+# [4.14.0]() (Upcoming)
 
 ### Bug Fixes
 
@@ -14,6 +14,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 * bump snapshot version to 4.13.1 [#121](https://github.com/hyperledger-web3j/web3j-evm/pull/121)
 
 ### BREAKING CHANGES
+
+* Upgrade to java 21 and Besu 25.2.1 [#122](https://github.com/hyperledger-web3j/web3j-evm/pull/122)
+
 
 # [4.13.0](https://github.com/hyperledger-web3j/web3j-evm/releases/tag/v4.13.0) (2025-03-06)
 
